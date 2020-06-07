@@ -36,12 +36,9 @@ e.g
 /stop : For stop receiving updates
 """
 print(help)
-update_str=''
 freq=(0,0)#freq,day
-state=''
 day=0
-chat_id=0
-first_nm,last_nm='',''
+
 
 def make_freq(updt):
     i_freq=updt.split('@')[1]
@@ -73,10 +70,9 @@ def send_totalcases(message):
 
 @bot.message_handler(commands=['stop'])
 def stop_updates(message):
-    if(len(scheduler.get_jobs()) >0):
-        for i in scheduler.get_jobs():
-            i.remove()
-            bot.reply_to(message,'job removed : '+str(i))
+    if(scheduler.get_job(str(message.from_user.id)) is not None):
+        scheduler.remove_job(str(message.from_user.id))
+        bot.reply_to(message,'job removed ')
     else:
         bot.reply_to(message,'No Subscirption')
 
@@ -98,27 +94,27 @@ def send_daily(message):
 
 @bot.message_handler(func=lambda msg : msg.text is not None and '@' not in msg.text)
 def send_daily_state(message):
-    global state,chat_id,first_nm,last_nm,freq
+    global freq
     state=message.text
     chat_id=message.chat.id
     first_nm=message.from_user.first_name
     last_nm=message.from_user.last_name
     bot.send_message(chat_id,str(freq))
     if freq[0]>0 and freq[1]==0 and state!='':
-        scheduler.add_job(send_updates, 'interval', seconds=freq[0],id='implicit',replace_existing=True)
+        scheduler.add_job(send_updates, 'interval',[chat_id,state,first_nm,last_nm],seconds=freq[0],id=str(message.from_user.id),replace_existing=True)
     elif freq[1]>0 and freq[0]==0 and state!='':
-        scheduler.add_job(send_updates,'interval',days=freq[1],id='implicit',replace_existing=True)
+        scheduler.add_job(send_updates,'interval',[chat_id,state,first_nm,last_nm],days=freq[1],id=str(message.from_user.id),replace_existing=True)
     
-def generate_update():
-    return ('Hi '+first_nm+' '+last_nm+'\n'+'The update is here : \n'+getstatesdata(state))
+def generate_update(state,first_nm,last_nm):
+    return ('Hi '+str(first_nm)+' '+str(last_nm)+'\n'+'The update is here : \n'+getstatesdata(state))
     
-def send_updates():
-        bot.send_message(chat_id,generate_update())
+def send_updates(chat_id,state,first_nm,last_nm):
+        bot.send_message(chat_id,generate_update(state,first_nm,last_nm))
 
 
 
-if freq[0]>0 and freq[1]==0 and state!='':
-    scheduler.add_job(send_updates, 'interval', seconds=freq[0],id='implicit',replace_existing=True)
+#if freq[0]>0 and freq[1]==0 and state!='':
+    #scheduler.add_job(send_updates, 'interval', seconds=freq[0],id='implicit',replace_existing=True)
     
 
 
